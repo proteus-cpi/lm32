@@ -81,9 +81,9 @@ TESTCASES += test_xor.elf
 TESTCASES += test_xori.elf
 
 # auto generated  test_mmu with NOPs inserted
-TESTCASES += test_mmu_nop1.elf
-TESTCASES += test_mmu_nop2.elf
-TESTCASES += test_mmu_nop3.elf
+#TESTCASES += test_mmu_nop1.elf
+#TESTCASES += test_mmu_nop2.elf
+#TESTCASES += test_mmu_nop3.elf
 
 all: build
 

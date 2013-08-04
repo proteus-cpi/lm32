@@ -43,13 +43,13 @@ sru r3, r3, r3
 check_r3 0
 
 test_name SRU_8
-mvi r1, 0xfffffff0
+mvi r1,  -0x0010       # 0xfffffff0
 mvi r2, 2
 sru r3, r1, r2
 check_r3 0x3ffffffc
 
 test_name SRU_9
-mvi r1, 0xfffffff0
+mvi r1, -0x0010        # 0xfffffff0
 mvi r2, 4
 sru r3, r1, r2
 check_r3 0x0fffffff

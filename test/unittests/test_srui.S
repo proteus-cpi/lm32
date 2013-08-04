@@ -28,12 +28,12 @@ srui r3, r3, 2
 check_r3 0
 
 test_name SRUI_6
-mvi r1, 0xfffffff0
+mvi r1,  -0x0010       #  0xfffffff0
 srui r3, r1, 2
 check_r3 0x3ffffffc
 
 test_name SRUI_7
-mvi r1, 0xfffffff0
+mvi r1,  -0x0010       #0xfffffff0
 srui r3, r1, 4
 check_r3 0x0fffffff
 

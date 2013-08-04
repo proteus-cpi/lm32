@@ -43,15 +43,15 @@ sr r3, r3, r3
 check_r3 0
 
 test_name SR_8
-mvi r1, 0xfffffff0
+mvi r1, -0x0010
 mvi r2, 2
 sr r3, r1, r2
-check_r3 0xfffffffc
+check_r3 -0x004
 
 test_name SR_9
-mvi r1, 0xfffffff0
+mvi r1, -0x0010
 mvi r2, 4
 sr r3, r1, r2
-check_r3 0xffffffff
+check_r3 -0x0001
 
 end

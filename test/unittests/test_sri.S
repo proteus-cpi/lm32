@@ -28,13 +28,13 @@ sri r3, r3, 2
 check_r3 0
 
 test_name SRI_6
-mvi r1, 0xfffffff0
+mvi r1, -0x0010
 sri r3, r1, 2
-check_r3 0xfffffffc
+check_r3 -0x0004
 
 test_name SRI_7
-mvi r1, 0xfffffff0
+mvi r1, -0x0010
 sri r3, r1, 4
-check_r3 0xffffffff
+check_r3 -0x0001
 
 end
