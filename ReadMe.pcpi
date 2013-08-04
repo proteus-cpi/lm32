@@ -4,4 +4,55 @@ Readme.pcpi
 Forked to experiment with the LM32. The objective is to create a minimal set that is easy 
 to understand and port to multiple platforms. Also bundle with known stable toolchain.
 
+1. Fixed up some test cases 
+   * mvi instruction not accepting constants > 0x7fff, < 0x8000
+   * Does not support mmu instructions
+   Disabled corresponding tests or fixed the range
+
+2. To test:
+   Go to  lm32/test
+
+    export LM32_TOOLS_PATH=/opt/LM32/lm32-elf
+    export PATH=${LM32_TOOLS_PATH}/bin/:${PATH}
+
+    execute:
+
+    > make sim_hello_world
+
+    Should print:
+
+    > lm32-elf-objcopy -O verilog hello_world.elf hello_world.vh
+    > Hello World
+    > rm hello_world.vh
+
+3.  unit test
+
+    Go to lm32/test/unittests
+
+    > make check
+
+    Should print :
+
+    
+    > make[1]: Entering directory `/home/Workspaces/Workspace-LM32/LM32-MilkyMist/lm32/test'
+    > make[1]: `tb_lm32_system' is up to date.
+    > make[1]: Leaving directory `/home/Workspaces/Workspace-LM32/LM32-MilkyMist/lm32/test'
+    > 
+    > Running test case test_add.vh
+    > TC ADD_1                                OK
+    > TC ADD_2                                OK
+    > TC ADD_3                                OK
+    ..
+    ..
+    > Running test case test_xori.vh
+    > TC XORI_1                               OK
+    > TC XORI_2                               OK
+    > TC XORI_3                               OK
+    > TC XORI_4                               OK
+    > TC XORI_5                               OK
+    > TC XORI_6                               OK
+
+    All tests (other than those disabled as noted above) should pass.
+
+
 
