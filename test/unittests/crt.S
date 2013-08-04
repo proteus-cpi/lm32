@@ -84,8 +84,8 @@ _system_call_handler:
 	nop
 
 _itlb_miss_handler:
-	ori r25, r25, 128
-	rcsr r24, TLBVADDR
+#	ori r25, r25, 128
+#	rcsr r24, TLBVADDR
 	ret
 	nop
 	nop
@@ -94,9 +94,9 @@ _itlb_miss_handler:
 	nop
 
 _dtlb_miss_handler:
-	ori r25, r25, 256
-	rcsr r24, TLBVADDR
-	addi ra, ea, 4
+#	ori r25, r25, 256
+#	rcsr r24, TLBVADDR
+#	addi ra, ea, 4
 	ret
 	nop
 	nop
@@ -104,9 +104,9 @@ _dtlb_miss_handler:
 	nop
 
 _dtlb_fault_handler:
-	ori r25, r25, 512
-	rcsr r24, TLBVADDR
-	addi ra, ea, 4
+#	ori r25, r25, 512
+#	rcsr r24, TLBVADDR
+#	addi ra, ea, 4
 	ret
 	nop
 	nop
