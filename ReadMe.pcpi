@@ -1,0 +1,7 @@
+Readme.pcpi
+===========
+
+Forked to experiment with the LM32. The objective is to create a minimal set that is easy 
+to understand and port to multiple platforms. Also bundle with known stable toolchain.
+
+
