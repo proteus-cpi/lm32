@@ -52,44 +52,45 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_addsub (
-    // ----- Inputs -------
-    DataA,
-    DataB,
-    Cin,
-    Add_Sub,
-    // ----- Outputs -------
-    Result,
-    Cout
-    );
+module lm32_addsub 
+  (
+   // ----- Inputs -------
+   DataA,
+   DataB,
+   Cin,
+   Add_Sub,
+   // ----- Outputs -------
+   Result,
+   Cout
+   );
 
-/////////////////////////////////////////////////////
-// Inputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Inputs
+   /////////////////////////////////////////////////////
 
-input [31:0] DataA;
-input [31:0] DataB;
-input Cin;
-input Add_Sub;
+   input [31:0] DataA;
+   input [31:0] DataB;
+   input 	Cin;
+   input 	Add_Sub;
 
-/////////////////////////////////////////////////////
-// Outputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Outputs
+   /////////////////////////////////////////////////////
 
-output [31:0] Result;
-wire   [31:0] Result;
-output Cout;
-wire   Cout;
+   output [31:0] Result;
+   wire [31:0] 	 Result;
+   output 	 Cout;
+   wire 	 Cout;
 
-/////////////////////////////////////////////////////
-// Instantiations
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Instantiations
+   /////////////////////////////////////////////////////
 
-// Modified for Milkymist: removed non-portable instantiated block
-wire [32:0] tmp_addResult = DataA + DataB + Cin;
-wire [32:0] tmp_subResult = DataA - DataB - !Cin;
+   // Modified for Milkymist: removed non-portable instantiated block
+   wire [32:0] 	 tmp_addResult 	= DataA + DataB + Cin;
+   wire [32:0] 	 tmp_subResult 	= DataA - DataB - !Cin;
 
-assign  Result = (Add_Sub == 1) ? tmp_addResult[31:0] : tmp_subResult[31:0];
-assign  Cout = (Add_Sub == 1) ? tmp_addResult[32] : !tmp_subResult[32];
+   assign  Result 		= (Add_Sub == 1) ? tmp_addResult[31:0] : tmp_subResult[31:0];
+   assign  Cout 		= (Add_Sub == 1) ? tmp_addResult[32] : !tmp_subResult[32];
 
 endmodule

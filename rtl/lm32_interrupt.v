@@ -53,337 +53,338 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_interrupt (
-    // ----- Inputs -------
-    clk_i,
-    rst_i,
-    // From external devices
-    interrupt,
-    // From pipeline
-    stall_x,
+module lm32_interrupt 
+  (
+   // ----- Inputs -------
+   clk_i,
+   rst_i,
+   // From external devices
+   interrupt,
+   // From pipeline
+   stall_x,
 `ifdef CFG_DEBUG_ENABLED
-    non_debug_exception,
-    debug_exception,
+   non_debug_exception,
+   debug_exception,
 `else
-    exception,
+   exception,
 `endif
-    eret_q_x,
+   eret_q_x,
 `ifdef CFG_DEBUG_ENABLED
-    bret_q_x,
+   bret_q_x,
 `endif
-    csr,
-    csr_write_data,
-    csr_write_enable,
-    // ----- Outputs -------
-    interrupt_exception,
-    // To pipeline
-    csr_read_data
-    );
+   csr,
+   csr_write_data,
+   csr_write_enable,
+   // ----- Outputs -------
+   interrupt_exception,
+   // To pipeline
+   csr_read_data
+   );
 
-/////////////////////////////////////////////////////
-// Parameters
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+    // Parameters
+   /////////////////////////////////////////////////////
 
-parameter interrupts = `CFG_INTERRUPTS;         // Number of interrupts
+   parameter interrupts = `CFG_INTERRUPTS;         // Number of interrupts
 
-/////////////////////////////////////////////////////
-// Inputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Inputs
+   /////////////////////////////////////////////////////
 
-input clk_i;                                    // Clock
-input rst_i;                                    // Reset
+   input clk_i;                                    // Clock
+   input rst_i;                                    // Reset
 
-input [interrupts-1:0] interrupt;               // Interrupt pins
+   input [interrupts-1:0] interrupt;               // Interrupt pins
 
-input stall_x;                                  // Stall X pipeline stage
+   input 		  stall_x;                 // Stall X pipeline stage
 
 `ifdef CFG_DEBUG_ENABLED
-input non_debug_exception;                      // Non-debug related exception has been raised
-input debug_exception;                          // Debug-related exception has been raised
+   input 		  non_debug_exception;     // Non-debug related exception has been raised
+   input 		  debug_exception;         // Debug-related exception has been raised
 `else
-input exception;                                // Exception has been raised
+   input 		  exception;               // Exception has been raised
 `endif
-input eret_q_x;                                 // Return from exception
+   input 		  eret_q_x;                // Return from exception
 `ifdef CFG_DEBUG_ENABLED
-input bret_q_x;                                 // Return from breakpoint
+   input 		  bret_q_x;                // Return from breakpoint
 `endif
 
-input [`LM32_CSR_RNG] csr;                      // CSR read/write index
-input [`LM32_WORD_RNG] csr_write_data;          // Data to write to specified CSR
-input csr_write_enable;                         // CSR write enable
+   input [`LM32_CSR_RNG]  csr;                     // CSR read/write index
+   input [`LM32_WORD_RNG] csr_write_data;          // Data to write to specified CSR
+   input 		  csr_write_enable;        // CSR write enable
 
-/////////////////////////////////////////////////////
-// Outputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Outputs
+   /////////////////////////////////////////////////////
 
-output interrupt_exception;                     // Request to raide an interrupt exception
-wire   interrupt_exception;
+   output 		  interrupt_exception;     // Request to raide an interrupt exception
+   wire 		  interrupt_exception;
 
-output [`LM32_WORD_RNG] csr_read_data;          // Data read from CSR
-reg    [`LM32_WORD_RNG] csr_read_data;
+   output [`LM32_WORD_RNG] csr_read_data;          // Data read from CSR
+   reg [`LM32_WORD_RNG]    csr_read_data;
 
-/////////////////////////////////////////////////////
-// Internal nets and registers
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Internal nets and registers
+   /////////////////////////////////////////////////////
 
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-wire [interrupts-1:0] asserted;                 // Which interrupts are currently being asserted
-//pragma attribute asserted preserve_signal true
+   wire [interrupts-1:0]   asserted;               // Which interrupts are currently being asserted
+   //pragma attribute asserted preserve_signal true
 `endif
-wire [interrupts-1:0] interrupt_n_exception;
+   wire [interrupts-1:0]   interrupt_n_exception;
 
-// Interrupt CSRs
+   // Interrupt CSRs
 
-reg ie;                                         // Interrupt enable
-reg eie;                                        // Exception interrupt enable
+   reg 			   ie;                     // Interrupt enable
+   reg 			   eie;                    // Exception interrupt enable
 `ifdef CFG_DEBUG_ENABLED
-reg bie;                                        // Breakpoint interrupt enable
+   reg 			   bie;                    // Breakpoint interrupt enable
 `endif
 `ifdef CFG_LEVEL_SENSITIVE_INTERRUPTS
-wire [interrupts-1:0] ip;                       // Interrupt pending
+   wire [interrupts-1:0]   ip;                     // Interrupt pending
 `else
-reg [interrupts-1:0] ip;                        // Interrupt pending
+   reg [interrupts-1:0]    ip;                     // Interrupt pending
 `endif
-reg [interrupts-1:0] im;                        // Interrupt mask
+   reg [interrupts-1:0]    im;                     // Interrupt mask
 
-/////////////////////////////////////////////////////
-// Combinational Logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Combinational Logic
+   /////////////////////////////////////////////////////
 
-// Determine which interrupts have occured and are unmasked
-assign interrupt_n_exception = ip & im;
+   // Determine which interrupts have occured and are unmasked
+   assign interrupt_n_exception = ip & im;
 
-// Determine if any unmasked interrupts have occured
-assign interrupt_exception = (|interrupt_n_exception) & ie;
+   // Determine if any unmasked interrupts have occured
+   assign interrupt_exception = (|interrupt_n_exception) & ie;
 
-// Determine which interrupts are currently being asserted or are already pending
+   // Determine which interrupts are currently being asserted or are already pending
 `ifdef CFG_LEVEL_SENSITIVE_INTERRUPTS
-assign ip = interrupt;
+   assign ip = interrupt;
 `else
-assign asserted = ip | interrupt;
+   assign asserted = ip | interrupt;
 `endif
 
-assign ie_csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
+   assign ie_csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
 `ifdef CFG_DEBUG_ENABLED
-                           bie,
+                              bie,
 `else
-                           1'b0,
+                              1'b0,
 `endif
-                           eie,
-                           ie
-                          };
-assign ip_csr_read_data = ip;
-assign im_csr_read_data = im;
-generate
-    if (interrupts > 1)
-    begin
-// CSR read
-always @(*)
-begin
-    case (csr)
+                              eie,
+                              ie
+                              };
+   assign ip_csr_read_data = ip;
+   assign im_csr_read_data = im;
+   generate
+      if (interrupts > 1)
+	begin
+	   // CSR read
+	   always @(*)
+	     begin
+		case (csr)
 `ifdef CFG_MMU_ENABLED
-    `LM32_CSR_PSW,
+		  `LM32_CSR_PSW,
 `endif
-    `LM32_CSR_IE:  csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
+		    `LM32_CSR_IE:  csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
 `ifdef CFG_DEBUG_ENABLED
-                                    bie,
+						    bie,
 `else
-                                    1'b0,
+						    1'b0,
 `endif
-                                    eie,
-                                    ie
-                                   };
-    `LM32_CSR_IP:  csr_read_data = ip;
-    `LM32_CSR_IM:  csr_read_data = im;
-    default:       csr_read_data = {`LM32_WORD_WIDTH{1'bx}};
-    endcase
-end
-    end
-    else
-    begin
-// CSR read
-always @(*)
-begin
-    case (csr)
-    `LM32_CSR_IE:  csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
+						    eie,
+						    ie
+						    };
+		  `LM32_CSR_IP:  csr_read_data = ip;
+		  `LM32_CSR_IM:  csr_read_data = im;
+		  default:       csr_read_data = {`LM32_WORD_WIDTH{1'bx}};
+		endcase
+	     end
+	end
+      else
+	begin
+	   // CSR read
+	   always @( * )
+	     begin
+		case (csr)
+		  `LM32_CSR_IE:  csr_read_data = {{`LM32_WORD_WIDTH-3{1'b0}},
 `ifdef CFG_DEBUG_ENABLED
-                                    bie,
+						  bie,
 `else
-                                    1'b0,
+						  1'b0,
 `endif
-                                    eie,
-                                    ie
-                                   };
-    `LM32_CSR_IP:  csr_read_data = ip;
-    default:       csr_read_data = {`LM32_WORD_WIDTH{1'bx}};
-    endcase
-end
-    end
-endgenerate
+						  eie,
+						  ie
+						  };
+		  `LM32_CSR_IP:  csr_read_data = ip;
+		  default:       csr_read_data = {`LM32_WORD_WIDTH{1'bx}};
+		endcase
+	     end
+	end
+   endgenerate
 
-/////////////////////////////////////////////////////
-// Sequential Logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Sequential Logic
+   /////////////////////////////////////////////////////
 
-generate
-    if (interrupts > 1)
-    begin
-// IE, IM, IP - Interrupt Enable, Interrupt Mask and Interrupt Pending CSRs
-always @(posedge clk_i `CFG_RESET_SENSITIVITY)
-begin
-    if (rst_i == `TRUE)
-    begin
-        ie <= `FALSE;
-        eie <= `FALSE;
+   generate
+      if (interrupts > 1)
+	begin
+	   // IE, IM, IP - Interrupt Enable, Interrupt Mask and Interrupt Pending CSRs
+	   always @(posedge clk_i `CFG_RESET_SENSITIVITY)
+	     begin
+		if (rst_i == `TRUE)
+		  begin
+		     ie <= `FALSE;
+		     eie <= `FALSE;
 `ifdef CFG_DEBUG_ENABLED
-        bie <= `FALSE;
+		     bie <= `FALSE;
 `endif
-        im <= {interrupts{1'b0}};
+		     im <= {interrupts{1'b0}};
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-        ip <= {interrupts{1'b0}};
+		     ip <= {interrupts{1'b0}};
 `endif
-    end
-    else
-    begin
-        // Set IP bit when interrupt line is asserted
+		  end
+		else
+		  begin
+		     // Set IP bit when interrupt line is asserted
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-        ip <= asserted;
+		     ip <= asserted;
 `endif
 `ifdef CFG_DEBUG_ENABLED
-        if (non_debug_exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            eie <= ie;
-            ie <= `FALSE;
-        end
-        else if (debug_exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            bie <= ie;
-            ie <= `FALSE;
-        end
+		     if (non_debug_exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  eie <= ie;
+			  ie <= `FALSE;
+		       end
+		     else if (debug_exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  bie <= ie;
+			  ie <= `FALSE;
+		       end
 `else
-        if (exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            eie <= ie;
-            ie <= `FALSE;
-        end
+		     if (exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  eie <= ie;
+			  ie <= `FALSE;
+		       end
 `endif
-        else if (stall_x == `FALSE)
-        begin
-            if (eret_q_x == `TRUE)
-                // Restore interrupt enable
-                ie <= eie;
+		     else if (stall_x == `FALSE)
+		       begin
+			  if (eret_q_x == `TRUE)
+			    // Restore interrupt enable
+			    ie <= eie;
 `ifdef CFG_DEBUG_ENABLED
-            else if (bret_q_x == `TRUE)
-                // Restore interrupt enable
-                ie <= bie;
+			  else if (bret_q_x == `TRUE)
+			    // Restore interrupt enable
+			    ie <= bie;
 `endif
-            else if (csr_write_enable == `TRUE)
-            begin
-                // Handle wcsr write
-                if (   (csr == `LM32_CSR_IE)
+			  else if (csr_write_enable == `TRUE)
+			    begin
+			       // Handle wcsr write
+			       if (   (csr == `LM32_CSR_IE)
 `ifdef CFG_MMU_ENABLED
-                    || (csr == `LM32_CSR_PSW)
+				      || (csr == `LM32_CSR_PSW)
 `endif
-                   )
-                begin
-                    ie <= csr_write_data[0];
-                    eie <= csr_write_data[1];
+				      )
+				 begin
+				    ie <= csr_write_data[0];
+				    eie <= csr_write_data[1];
 `ifdef CFG_DEBUG_ENABLED
-                    bie <= csr_write_data[2];
+				    bie <= csr_write_data[2];
 `endif
-                end
-                if (csr == `LM32_CSR_IM)
-                    im <= csr_write_data[interrupts-1:0];
+				 end
+			       if (csr == `LM32_CSR_IM)
+				 im <= csr_write_data[interrupts-1:0];
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-                if (csr == `LM32_CSR_IP)
-                    ip <= asserted & ~csr_write_data[interrupts-1:0];
+			       if (csr == `LM32_CSR_IP)
+				 ip <= asserted & ~csr_write_data[interrupts-1:0];
 `endif
-            end
-        end
-    end
-end
-    end
-else
-    begin
-// IE, IM, IP - Interrupt Enable, Interrupt Mask and Interrupt Pending CSRs
-always @(posedge clk_i `CFG_RESET_SENSITIVITY)
-begin
-    if (rst_i == `TRUE)
-    begin
-        ie <= `FALSE;
-        eie <= `FALSE;
+			    end
+		       end
+		  end
+	     end
+	end
+      else
+	begin
+	   // IE, IM, IP - Interrupt Enable, Interrupt Mask and Interrupt Pending CSRs
+	   always @(posedge clk_i `CFG_RESET_SENSITIVITY)
+	     begin
+		if (rst_i == `TRUE)
+		  begin
+		     ie <= `FALSE;
+		     eie <= `FALSE;
 `ifdef CFG_DEBUG_ENABLED
-        bie <= `FALSE;
+		     bie <= `FALSE;
 `endif
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-        ip <= {interrupts{1'b0}};
+		     ip <= {interrupts{1'b0}};
 `endif
-    end
-    else
-    begin
-        // Set IP bit when interrupt line is asserted
+		  end
+		else
+		  begin
+		     // Set IP bit when interrupt line is asserted
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-        ip <= asserted;
+		     ip <= asserted;
 `endif
 `ifdef CFG_DEBUG_ENABLED
-        if (non_debug_exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            eie <= ie;
-            ie <= `FALSE;
-        end
-        else if (debug_exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            bie <= ie;
-            ie <= `FALSE;
-        end
+		     if (non_debug_exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  eie <= ie;
+			  ie <= `FALSE;
+		       end
+		     else if (debug_exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  bie <= ie;
+			  ie <= `FALSE;
+		       end
 `else
-        if (exception == `TRUE)
-        begin
-            // Save and then clear interrupt enable
-            eie <= ie;
-            ie <= `FALSE;
-        end
+		     if (exception == `TRUE)
+		       begin
+			  // Save and then clear interrupt enable
+			  eie <= ie;
+			  ie <= `FALSE;
+		       end
 `endif
-        else if (stall_x == `FALSE)
-        begin
-            if (eret_q_x == `TRUE)
-                // Restore interrupt enable
-                ie <= eie;
+		     else if (stall_x == `FALSE)
+		       begin
+			  if (eret_q_x == `TRUE)
+			    // Restore interrupt enable
+			    ie <= eie;
 `ifdef CFG_DEBUG_ENABLED
-            else if (bret_q_x == `TRUE)
-                // Restore interrupt enable
-                ie <= bie;
+			  else if (bret_q_x == `TRUE)
+			    // Restore interrupt enable
+			    ie <= bie;
 `endif
-            else if (csr_write_enable == `TRUE)
-            begin
-                // Handle wcsr write
-                if (   (csr == `LM32_CSR_IE)
+			  else if (csr_write_enable == `TRUE)
+			    begin
+			       // Handle wcsr write
+			       if (   (csr == `LM32_CSR_IE)
 `ifdef CFG_MMU_ENABLED
-                    || (csr == `LM32_CSR_PSW)
+				      || (csr == `LM32_CSR_PSW)
 `endif
-                   )
-                begin
-                    ie <= csr_write_data[0];
-                    eie <= csr_write_data[1];
+				      )
+				 begin
+				    ie <= csr_write_data[0];
+				    eie <= csr_write_data[1];
 `ifdef CFG_DEBUG_ENABLED
-                    bie <= csr_write_data[2];
+				    bie <= csr_write_data[2];
 `endif
-                end
+				 end
 `ifndef CFG_LEVEL_SENSITIVE_INTERRUPTS
-                if (csr == `LM32_CSR_IP)
-                    ip <= asserted & ~csr_write_data[interrupts-1:0];
+			       if (csr == `LM32_CSR_IP)
+				 ip <= asserted & ~csr_write_data[interrupts-1:0];
 `endif
-            end
-        end
-    end
-end
-    end
-endgenerate
+			    end
+		       end
+		  end
+	     end
+	end
+   endgenerate
 
 endmodule
 

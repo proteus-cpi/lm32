@@ -61,249 +61,250 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_mc_arithmetic (
-    // ----- Inputs -----
-    clk_i,
-    rst_i,
-    stall_d,
-    kill_x,
+module lm32_mc_arithmetic 
+  (
+   // ----- Inputs -----
+   clk_i,
+   rst_i,
+   stall_d,
+   kill_x,
 `ifdef CFG_MC_DIVIDE_ENABLED
-    divide_d,
-    modulus_d,
+   divide_d,
+   modulus_d,
 `endif
 `ifdef CFG_MC_MULTIPLY_ENABLED
-    multiply_d,
+   multiply_d,
 `endif
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-    shift_left_d,
-    shift_right_d,
-    sign_extend_d,
+   shift_left_d,
+   shift_right_d,
+   sign_extend_d,
 `endif
-    operand_0_d,
-    operand_1_d,
-    // ----- Ouputs -----
-    result_x,
+   operand_0_d,
+   operand_1_d,
+   // ----- Ouputs -----
+   result_x,
 `ifdef CFG_MC_DIVIDE_ENABLED
-    divide_by_zero_x,
+   divide_by_zero_x,
 `endif
-    stall_request_x
-    );
+   stall_request_x
+   );
 
-/////////////////////////////////////////////////////
-// Inputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+  // Inputs
+   /////////////////////////////////////////////////////
 
-input clk_i;                                    // Clock
-input rst_i;                                    // Reset
-input stall_d;                                  // Stall instruction in D stage
-input kill_x;                                   // Kill instruction in X stage
+   input clk_i;                                    // Clock
+   input rst_i;                                    // Reset
+   input stall_d;                                  // Stall instruction in D stage
+   input kill_x;                                   // Kill instruction in X stage
 `ifdef CFG_MC_DIVIDE_ENABLED
-input divide_d;                                 // Perform divide
-input modulus_d;                                // Perform modulus
+   input divide_d;                                 // Perform divide
+   input modulus_d;                                // Perform modulus
 `endif
 `ifdef CFG_MC_MULTIPLY_ENABLED
-input multiply_d;                               // Perform multiply
+   input multiply_d;                               // Perform multiply
 `endif
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-input shift_left_d;                             // Perform left shift
-input shift_right_d;                            // Perform right shift
-input sign_extend_d;                            // Whether to sign-extend (arithmetic) or zero-extend (logical)
+   input shift_left_d;                             // Perform left shift
+   input shift_right_d;                            // Perform right shift
+   input sign_extend_d;                            // Whether to sign-extend (arithmetic) or zero-extend (logical)
 `endif
-input [`LM32_WORD_RNG] operand_0_d;
-input [`LM32_WORD_RNG] operand_1_d;
+   input [`LM32_WORD_RNG] operand_0_d;
+   input [`LM32_WORD_RNG] operand_1_d;
 
-/////////////////////////////////////////////////////
-// Outputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Outputs
+   /////////////////////////////////////////////////////
 
-output [`LM32_WORD_RNG] result_x;               // Result of operation
-reg    [`LM32_WORD_RNG] result_x;
+   output [`LM32_WORD_RNG] result_x;               // Result of operation
+   reg [`LM32_WORD_RNG]    result_x;
 `ifdef CFG_MC_DIVIDE_ENABLED
-output divide_by_zero_x;                        // A divide by zero was attempted
-reg    divide_by_zero_x;
+   output 		   divide_by_zero_x;       // A divide by zero was attempted
+   reg 			   divide_by_zero_x;
 `endif
-output stall_request_x;                         // Request to stall pipeline from X stage back
-wire   stall_request_x;
+   output 		   stall_request_x;        // Request to stall pipeline from X stage back
+   wire 		   stall_request_x;
 
-/////////////////////////////////////////////////////
-// Internal nets and registers
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Internal nets and registers
+   /////////////////////////////////////////////////////
 
-reg [`LM32_WORD_RNG] p;                         // Temporary registers
-reg [`LM32_WORD_RNG] a;
-reg [`LM32_WORD_RNG] b;
+   reg [`LM32_WORD_RNG]    p;                      // Temporary registers
+   reg [`LM32_WORD_RNG]    a;
+   reg [`LM32_WORD_RNG]    b;
 `ifdef CFG_MC_DIVIDE_ENABLED
-wire [32:0] t;
+   wire [32:0] 		   t;
 `endif
 
-reg [`LM32_MC_STATE_RNG] state;                 // Current state of FSM
-reg [5:0] cycles;                               // Number of cycles remaining in the operation
+   reg [`LM32_MC_STATE_RNG] state;                 // Current state of FSM
+   reg [5:0] 		    cycles;                // Number of cycles remaining in the operation
 
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-reg sign_extend_x;                              // Whether to sign extend of zero extend right shifts
-wire fill_value;                                // Value to fill with for right barrel-shifts
+   reg 			    sign_extend_x;         // Whether to sign extend of zero extend right shifts
+   wire 		    fill_value;            // Value to fill with for right barrel-shifts
 `endif
 
-/////////////////////////////////////////////////////
-// Combinational logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Combinational logic
+   /////////////////////////////////////////////////////
 
-// Stall pipeline while any operation is being performed
-assign stall_request_x = state != `LM32_MC_STATE_IDLE;
+   // Stall pipeline while any operation is being performed
+   assign stall_request_x = state != `LM32_MC_STATE_IDLE;
 
 `ifdef CFG_MC_DIVIDE_ENABLED
-// Subtraction
-assign t = {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]} - b;
+   // Subtraction
+   assign t = {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]} - b;
 `endif
 
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-// Determine fill value for right shift - Sign bit for arithmetic shift, or zero for logical shift
-assign fill_value = (sign_extend_x == `TRUE) & b[`LM32_WORD_WIDTH-1];
+   // Determine fill value for right shift - Sign bit for arithmetic shift, or zero for logical shift
+   assign fill_value  = (sign_extend_x == `TRUE) & b[`LM32_WORD_WIDTH-1];
 `endif
 
-/////////////////////////////////////////////////////
-// Sequential logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Sequential logic
+   /////////////////////////////////////////////////////
 
-// Perform right shift
-always @(posedge clk_i `CFG_RESET_SENSITIVITY)
-begin
-    if (rst_i == `TRUE)
-    begin
-        cycles <= {6{1'b0}};
-        p <= {`LM32_WORD_WIDTH{1'b0}};
-        a <= {`LM32_WORD_WIDTH{1'b0}};
-        b <= {`LM32_WORD_WIDTH{1'b0}};
+   // Perform right shift
+   always @(posedge clk_i `CFG_RESET_SENSITIVITY)
+     begin
+	if (rst_i == `TRUE)
+	  begin
+             cycles <= {6{1'b0}};
+             p 	    <= {`LM32_WORD_WIDTH{1'b0}};
+             a 	    <= {`LM32_WORD_WIDTH{1'b0}};
+             b 	    <= {`LM32_WORD_WIDTH{1'b0}};
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-        sign_extend_x <= 1'b0;
+             sign_extend_x <= 1'b0;
 `endif
 `ifdef CFG_MC_DIVIDE_ENABLED
-        divide_by_zero_x <= `FALSE;
+             divide_by_zero_x <= `FALSE;
 `endif
-        result_x <= {`LM32_WORD_WIDTH{1'b0}};
-        state <= `LM32_MC_STATE_IDLE;
-    end
-    else
-    begin
+             result_x <= {`LM32_WORD_WIDTH{1'b0}};
+             state <= `LM32_MC_STATE_IDLE;
+	  end
+	else
+	  begin
 `ifdef CFG_MC_DIVIDE_ENABLED
-        divide_by_zero_x <= `FALSE;
+             divide_by_zero_x <= `FALSE;
 `endif
-        case (state)
-        `LM32_MC_STATE_IDLE:
-        begin
-            if (stall_d == `FALSE)
-            begin
-                cycles <= `LM32_WORD_WIDTH;
-                p <= 32'b0;
-                a <= operand_0_d;
-                b <= operand_1_d;
+             case (state)
+               `LM32_MC_STATE_IDLE:
+		 begin
+		    if (stall_d == `FALSE)
+		      begin
+			 cycles <= `LM32_WORD_WIDTH;
+			 p <= 32'b0;
+			 a <= operand_0_d;
+			 b <= operand_1_d;
 `ifdef CFG_MC_DIVIDE_ENABLED
-                if (divide_d == `TRUE)
-                    state <= `LM32_MC_STATE_DIVIDE;
-                if (modulus_d == `TRUE)
-                    state <= `LM32_MC_STATE_MODULUS;
+			 if (divide_d == `TRUE)
+			   state <= `LM32_MC_STATE_DIVIDE;
+			 if (modulus_d == `TRUE)
+			   state <= `LM32_MC_STATE_MODULUS;
 `endif
 `ifdef CFG_MC_MULTIPLY_ENABLED
-                if (multiply_d == `TRUE)
-                    state <= `LM32_MC_STATE_MULTIPLY;
+			 if (multiply_d == `TRUE)
+			   state <= `LM32_MC_STATE_MULTIPLY;
 `endif
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-                if (shift_left_d == `TRUE)
-                begin
-                    state <= `LM32_MC_STATE_SHIFT_LEFT;
-                    sign_extend_x <= sign_extend_d;
-                    cycles <= operand_1_d[4:0];
-                    a <= operand_0_d;
-                    b <= operand_0_d;
-                end
-                if (shift_right_d == `TRUE)
-                begin
-                    state <= `LM32_MC_STATE_SHIFT_RIGHT;
-                    sign_extend_x <= sign_extend_d;
-                    cycles <= operand_1_d[4:0];
-                    a <= operand_0_d;
-                    b <= operand_0_d;
-                end
+			 if (shift_left_d == `TRUE)
+			   begin
+			      state 	    <= `LM32_MC_STATE_SHIFT_LEFT;
+			      sign_extend_x <= sign_extend_d;
+			      cycles 	    <= operand_1_d[4:0];
+			      a 	    <= operand_0_d;
+			      b 	    <= operand_0_d;
+			   end
+			 if (shift_right_d == `TRUE)
+			   begin
+			      state 	    <= `LM32_MC_STATE_SHIFT_RIGHT;
+			      sign_extend_x <= sign_extend_d;
+			      cycles 	    <= operand_1_d[4:0];
+			      a 	    <= operand_0_d;
+			      b 	    <= operand_0_d;
+			   end
 `endif
-            end
-        end
+		      end
+		 end
 `ifdef CFG_MC_DIVIDE_ENABLED
-        `LM32_MC_STATE_DIVIDE:
-        begin
-            if (t[32] == 1'b0)
-            begin
-                p <= t[31:0];
-                a <= {a[`LM32_WORD_WIDTH-2:0], 1'b1};
-            end
-            else
-            begin
-                p <= {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]};
-                a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
-            end
-            result_x <= a;
-            if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
-            begin
-                // Check for divide by zero
-                divide_by_zero_x <= b == {`LM32_WORD_WIDTH{1'b0}};
-                state <= `LM32_MC_STATE_IDLE;
-            end
-            cycles <= cycles - 1'b1;
-        end
-        `LM32_MC_STATE_MODULUS:
-        begin
-            if (t[32] == 1'b0)
-            begin
-                p <= t[31:0];
-                a <= {a[`LM32_WORD_WIDTH-2:0], 1'b1};
-            end
-            else
-            begin
-                p <= {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]};
-                a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
-            end
-            result_x <= p;
-            if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
-            begin
-                // Check for divide by zero
-                divide_by_zero_x <= b == {`LM32_WORD_WIDTH{1'b0}};
-                state <= `LM32_MC_STATE_IDLE;
-            end
-            cycles <= cycles - 1'b1;
-        end
+               `LM32_MC_STATE_DIVIDE:
+		 begin
+		    if (t[32] == 1'b0)
+		      begin
+			 p <= t[31:0];
+			 a <= {a[`LM32_WORD_WIDTH-2:0], 1'b1};
+		      end
+		    else
+		      begin
+			 p <= {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]};
+			 a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
+		      end
+		    result_x <= a;
+		    if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
+		      begin
+			 // Check for divide by zero
+			 divide_by_zero_x <= b == {`LM32_WORD_WIDTH{1'b0}};
+			 state 		  <= `LM32_MC_STATE_IDLE;
+		      end
+		    cycles <= cycles - 1'b1;
+		 end
+               `LM32_MC_STATE_MODULUS:
+		 begin
+		    if (t[32] == 1'b0)
+		      begin
+			 p <= t[31:0];
+			 a <= {a[`LM32_WORD_WIDTH-2:0], 1'b1};
+		      end
+		    else
+		      begin
+			 p <= {p[`LM32_WORD_WIDTH-2:0], a[`LM32_WORD_WIDTH-1]};
+			 a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
+		      end
+		    result_x <= p;
+		    if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
+		      begin
+			 // Check for divide by zero
+			 divide_by_zero_x <= b == {`LM32_WORD_WIDTH{1'b0}};
+			 state 		  <= `LM32_MC_STATE_IDLE;
+		      end
+		    cycles <= cycles - 1'b1;
+		 end
 `endif
 `ifdef CFG_MC_MULTIPLY_ENABLED
-        `LM32_MC_STATE_MULTIPLY:
-        begin
-            if (b[0] == 1'b1)
-                p <= p + a;
-            b <= {1'b0, b[`LM32_WORD_WIDTH-1:1]};
-            a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
-            result_x <= p;
-            if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
-                state <= `LM32_MC_STATE_IDLE;
-            cycles <= cycles - 1'b1;
-        end
+               `LM32_MC_STATE_MULTIPLY:
+		 begin
+		    if (b[0] == 1'b1)
+                      p 	<= p + a;
+		    b 		<= {1'b0, b[`LM32_WORD_WIDTH-1:1]};
+		    a 		<= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
+		    result_x 	<= p;
+		    if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
+                      state 	<= `LM32_MC_STATE_IDLE;
+		    cycles 	<= cycles - 1'b1;
+		 end
 `endif
 `ifdef CFG_MC_BARREL_SHIFT_ENABLED
-        `LM32_MC_STATE_SHIFT_LEFT:
-        begin
-            a <= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
-            result_x <= a;
-            if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
-                state <= `LM32_MC_STATE_IDLE;
-            cycles <= cycles - 1'b1;
-        end
-        `LM32_MC_STATE_SHIFT_RIGHT:
-        begin
-            b <= {fill_value, b[`LM32_WORD_WIDTH-1:1]};
-            result_x <= b;
-            if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
-                state <= `LM32_MC_STATE_IDLE;
-            cycles <= cycles - 1'b1;
-        end
+               `LM32_MC_STATE_SHIFT_LEFT:
+		 begin
+		    a 		<= {a[`LM32_WORD_WIDTH-2:0], 1'b0};
+		    result_x 	<= a;
+		    if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
+                      state 	<= `LM32_MC_STATE_IDLE;
+		    cycles 	<= cycles - 1'b1;
+		 end
+               `LM32_MC_STATE_SHIFT_RIGHT:
+		 begin
+		    b 		<= {fill_value, b[`LM32_WORD_WIDTH-1:1]};
+		    result_x 	<= b;
+		    if ((cycles == `LM32_WORD_WIDTH'd0) || (kill_x == `TRUE))
+                      state 	<= `LM32_MC_STATE_IDLE;
+		    cycles 	<= cycles - 1'b1;
+		 end
 `endif
-        endcase
-    end
-end
+             endcase
+	  end
+     end
 
 endmodule

@@ -34,112 +34,113 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_dp_ram (
-    // ----- Inputs -------
-    clk_a,
-    clk_b,
-    ce_a,
-    ce_b,
-    addr_a,
-    addr_b,
-    di_a,
-    di_b,
-    we_a,
-    we_b,
-    // ----- Outputs -------
-    do_a,
-    do_b
-    );
+module lm32_dp_ram 
+  (
+   // ----- Inputs -------
+   clk_a,
+   clk_b,
+   ce_a,
+   ce_b,
+   addr_a,
+   addr_b,
+   di_a,
+   di_b,
+   we_a,
+   we_b,
+   // ----- Outputs -------
+   do_a,
+   do_b
+   );
 
-/////////////////////////////////////////////////////
-// Parameters
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+    // Parameters
+   /////////////////////////////////////////////////////
 
-parameter data_width = 1;               // Width of the data ports
-parameter address_width = 1;            // Width of the address ports
-parameter init_file = "NONE";           // Initialization file
+   parameter data_width = 1;               // Width of the data ports
+   parameter address_width = 1;            // Width of the address ports
+   parameter init_file = "NONE";           // Initialization file
 
-/////////////////////////////////////////////////////
-// Inputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Inputs
+   /////////////////////////////////////////////////////
 
-input clk_a;                            // Clock port A
-input clk_b;                            // Clock port B
+   input clk_a;                            // Clock port A
+   input clk_b;                            // Clock port B
 
-input ce_a;                             // Clock enable port A
-input ce_b;                             // Clock enable port B
-input [address_width-1:0] addr_a;       // Read/write address port A
-input [address_width-1:0] addr_b;       // Read/write address port B
-input [data_width-1:0] di_a;            // Data input port A
-input [data_width-1:0] di_b;            // Data input port B
-input we_a;                             // Write enable port A
-input we_b;                             // Write enable port B
+   input ce_a;                             // Clock enable port A
+   input ce_b;                             // Clock enable port B
+   input [address_width-1:0] addr_a;       // Read/write address port A
+   input [address_width-1:0] addr_b;       // Read/write address port B
+   input [data_width-1:0]    di_a;         // Data input port A
+   input [data_width-1:0]    di_b;         // Data input port B
+   input 		     we_a;         // Write enable port A
+   input 		     we_b;         // Write enable port B
 
-/////////////////////////////////////////////////////
-// Outputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Outputs
+   /////////////////////////////////////////////////////
 
-output [data_width-1:0] do_a;           // Data output port A
-wire   [data_width-1:0] do_a;
+   output [data_width-1:0]   do_a;         // Data output port A
+   wire [data_width-1:0]     do_a;
 
-output [data_width-1:0] do_b;           // Data output port B
-wire   [data_width-1:0] do_b;
+   output [data_width-1:0]   do_b;         // Data output port B
+   wire [data_width-1:0]     do_b;
 
-/////////////////////////////////////////////////////
-// Internal nets and registers
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Internal nets and registers
+   /////////////////////////////////////////////////////
 
-reg [data_width-1:0]    mem[0:(1<<address_width)-1];
-reg [address_width-1:0] ra_a;           // Registered read address port A
-reg [address_width-1:0] ra_b;           // Registered read address port B
+   reg [data_width-1:0]      mem[0:(1<<address_width)-1];
+   reg [address_width-1:0]   ra_a;         // Registered read address port A
+   reg [address_width-1:0]   ra_b;         // Registered read address port B
 
-/////////////////////////////////////////////////////
-// Functions
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Functions
+   /////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////
-// Instantiations
-/////////////////////////////////////////////////////
+   ////////////////////////////////////////////////////
+   // Instantiations
+   /////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////
-// Combinational logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Combinational logic
+   /////////////////////////////////////////////////////
 
-// Read ports
-assign do_a = mem[ra_a];
-assign do_b = mem[ra_b];
+   // Read ports
+   assign do_a 	= mem[ra_a];
+   assign do_b 	= mem[ra_b];
 
-/////////////////////////////////////////////////////
-// Sequential logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Sequential logic
+   /////////////////////////////////////////////////////
 
-// Write ports
-always @(posedge clk_a)
-    if ((ce_a == `TRUE) && (we_a == `TRUE))
-        mem[addr_a] <= di_a;
+   // Write ports
+   always @(posedge clk_a)
+     if ((ce_a == `TRUE) && (we_a == `TRUE))
+       mem[addr_a] <= di_a;
 
-always @(posedge clk_b)
-    if ((ce_b == `TRUE) && (we_b == `TRUE))
-        mem[addr_b] <= di_b;
+   always @(posedge clk_b)
+     if ((ce_b == `TRUE) && (we_b == `TRUE))
+       mem[addr_b] <= di_b;
 
-// Register read addresses for use on next cycle
-always @(posedge clk_a)
-    if (ce_a == `TRUE)
-        ra_a <= addr_a;
+   // Register read addresses for use on next cycle
+   always @(posedge clk_a)
+     if (ce_a == `TRUE)
+       ra_a   <= addr_a;
 
-always @(posedge clk_b)
-    if (ce_b == `TRUE)
-        ra_b <= addr_b;
+   always @(posedge clk_b)
+     if (ce_b == `TRUE)
+       ra_b   <= addr_b;
 
-/////////////////////////////////////////////////////
-// Initialization
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Initialization
+   /////////////////////////////////////////////////////
 
-generate
-    if (init_file != "NONE")
-    begin
-initial $readmemh(init_file, mem);
-    end
-endgenerate
-    
+   generate
+      if (init_file != "NONE")
+	begin
+	   initial $readmemh(init_file, mem);
+	end
+   endgenerate
+   
 endmodule

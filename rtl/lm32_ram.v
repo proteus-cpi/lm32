@@ -58,81 +58,82 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_ram (
-    // ----- Inputs -------
-    read_clk,
-    write_clk,
-    reset,
-    enable_read,
-    read_address,
-    enable_write,
-    write_address,
-    write_data,
-    write_enable,
-    // ----- Outputs -------
-    read_data
-    );
+module lm32_ram 
+  (
+   // ----- Inputs -------
+   read_clk,
+   write_clk,
+   reset,
+   enable_read,
+   read_address,
+   enable_write,
+   write_address,
+   write_data,
+   write_enable,
+   // ----- Outputs -------
+   read_data
+   );
 
-/*----------------------------------------------------------------------
- Parameters
- ----------------------------------------------------------------------*/
-parameter data_width = 1;               // Width of the data ports
-parameter address_width = 1;            // Width of the address ports
-parameter init_file = "NONE";           // Initialization file
+   /*----------------------------------------------------------------------
+    Parameters
+    ----------------------------------------------------------------------*/
+   parameter data_width = 1;               // Width of the data ports
+   parameter address_width = 1;            // Width of the address ports
+   parameter init_file = "NONE";           // Initialization file
 
-/*----------------------------------------------------------------------
- Inputs
- ----------------------------------------------------------------------*/
-input read_clk;                         // Read clock
-input write_clk;                        // Write clock
-input reset;                            // Reset
+   /*----------------------------------------------------------------------
+    Inputs
+    ----------------------------------------------------------------------*/
+   input read_clk;                         // Read clock
+   input write_clk;                        // Write clock
+   input reset;                            // Reset
 
-input enable_read;                      // Access enable
-input [address_width-1:0] read_address; // Read/write address
-input enable_write;                     // Access enable
-input [address_width-1:0] write_address;// Read/write address
-input [data_width-1:0] write_data;      // Data to write to specified address
-input write_enable;                     // Write enable
+   input enable_read;                      // Access enable
+   input [address_width-1:0] read_address; // Read/write address
+   input 		     enable_write;                     // Access enable
+   input [address_width-1:0] write_address;// Read/write address
+   input [data_width-1:0]    write_data;      // Data to write to specified address
+   input 		     write_enable;                     // Write enable
 
-/*----------------------------------------------------------------------
- Outputs
- ----------------------------------------------------------------------*/
-output [data_width-1:0] read_data;      // Data read from specified addess
-wire   [data_width-1:0] read_data;
+   /*----------------------------------------------------------------------
+    Outputs
+    ----------------------------------------------------------------------*/
+   output [data_width-1:0]   read_data;      // Data read from specified addess
+   wire [data_width-1:0]     read_data;
 
-/*----------------------------------------------------------------------
- Internal nets and registers
- ----------------------------------------------------------------------*/
-reg [data_width-1:0]    mem[0:(1<<address_width)-1]; // The RAM
-reg [address_width-1:0] ra; // Registered read address
+   /*----------------------------------------------------------------------
+    Internal nets and registers
+    ----------------------------------------------------------------------*/
+   reg [data_width-1:0]      mem[0:(1<<address_width)-1]; // The RAM
+   reg [address_width-1:0]   ra; // Registered read address
 
-/*----------------------------------------------------------------------
- Combinational Logic
- ----------------------------------------------------------------------*/
-// Read port
-assign read_data = mem[ra];
+   /*----------------------------------------------------------------------
+    Combinational Logic
+    ----------------------------------------------------------------------*/
+   // Read port
+   assign read_data = mem[ra];
 
-/*----------------------------------------------------------------------
- Sequential Logic
- ----------------------------------------------------------------------*/
-// Write port
-always @(posedge write_clk)
-    if ((write_enable == `TRUE) && (enable_write == `TRUE))
-        mem[write_address] <= write_data;
+   /*----------------------------------------------------------------------
+    Sequential Logic
+    ----------------------------------------------------------------------*/
+   // Write port
+   always @(posedge write_clk)
+     if ((write_enable == `TRUE) && (enable_write == `TRUE))
+       mem[write_address] <= write_data;
 
-// Register read address for use on next cycle
-always @(posedge read_clk)
-    if (enable_read)
-        ra <= read_address;
+   // Register read address for use on next cycle
+   always @(posedge read_clk)
+     if (enable_read)
+       ra <= read_address;
 
-/*----------------------------------------------------------------------
- Initialization
- ----------------------------------------------------------------------*/
-generate
-	if (init_file != "NONE")
+   /*----------------------------------------------------------------------
+    Initialization
+    ----------------------------------------------------------------------*/
+   generate
+      if (init_file != "NONE")
 	begin
-initial $readmemh(init_file, mem);
+	   initial $readmemh(init_file, mem);
 	end
-endgenerate
-	
+   endgenerate
+   
 endmodule

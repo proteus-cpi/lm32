@@ -53,84 +53,86 @@
 // Module interface
 /////////////////////////////////////////////////////
 
-module lm32_adder (
-    // ----- Inputs -------
-    adder_op_x,
-    adder_op_x_n,
-    operand_0_x,
-    operand_1_x,
-    // ----- Outputs -------
-    adder_result_x,
-    adder_carry_n_x,
-    adder_overflow_x
-    );
+module lm32_adder 
+  (
+   // ----- Inputs -------
+   adder_op_x,
+   adder_op_x_n,
+   operand_0_x,
+   operand_1_x,
+   // ----- Outputs -------
+   adder_result_x,
+   adder_carry_n_x,
+   adder_overflow_x
+   );
 
-/////////////////////////////////////////////////////
-// Inputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+  // Inputs
+   /////////////////////////////////////////////////////
 
-input adder_op_x;                                       // Operating to perform, 0 for addition, 1 for subtraction
-input adder_op_x_n;                                     // Inverted version of adder_op_x
-input [`LM32_WORD_RNG] operand_0_x;                     // Operand to add, or subtract from
-input [`LM32_WORD_RNG] operand_1_x;                     // Opearnd to add, or subtract by
+   input adder_op_x;                                       // Operating to perform, 0 for addition, 1 for subtraction
+   input adder_op_x_n;                                     // Inverted version of adder_op_x
+   input [`LM32_WORD_RNG] operand_0_x;                     // Operand to add, or subtract from
+   input [`LM32_WORD_RNG] operand_1_x;                     // Opearnd to add, or subtract by
 
-/////////////////////////////////////////////////////
-// Outputs
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Outputs
+   /////////////////////////////////////////////////////
 
-output [`LM32_WORD_RNG] adder_result_x;                 // Result of addition or subtraction
-wire   [`LM32_WORD_RNG] adder_result_x;
-output adder_carry_n_x;                                 // Inverted carry
-wire   adder_carry_n_x;
-output adder_overflow_x;                                // Indicates if overflow occured, only valid for subtractions
-reg    adder_overflow_x;
+   output [`LM32_WORD_RNG] adder_result_x;                 // Result of addition or subtraction
+   wire [`LM32_WORD_RNG]   adder_result_x;
+   output 		   adder_carry_n_x;                // Inverted carry
+   wire 		   adder_carry_n_x;
+   output 		   adder_overflow_x;               // Indicates if overflow occured, only valid for subtractions
+   reg 			   adder_overflow_x;
 
-/////////////////////////////////////////////////////
-// Internal nets and registers
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Internal nets and registers
+   /////////////////////////////////////////////////////
 
-wire a_sign;                                            // Sign (i.e. positive or negative) of operand 0
-wire b_sign;                                            // Sign of operand 1
-wire result_sign;                                       // Sign of result
+   wire 		   a_sign;                         // Sign (i.e. positive or negative) of operand 0
+   wire 		   b_sign;                         // Sign of operand 1
+   wire 		   result_sign;                    // Sign of result
 
-/////////////////////////////////////////////////////
-// Instantiations
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+   // Instantiations
+   /////////////////////////////////////////////////////
 
-lm32_addsub addsub (
-    // ----- Inputs -----
-    .DataA          (operand_0_x),
-    .DataB          (operand_1_x),
-    .Cin            (adder_op_x),
-    .Add_Sub        (adder_op_x_n),
-    // ----- Ouputs -----
-    .Result         (adder_result_x),
-    .Cout           (adder_carry_n_x)
-    );
+   lm32_addsub addsub 
+     (
+      // ----- Inputs -----
+      .DataA          (operand_0_x),
+      .DataB          (operand_1_x),
+      .Cin            (adder_op_x),
+      .Add_Sub        (adder_op_x_n),
+      // ----- Ouputs -----
+      .Result         (adder_result_x),
+      .Cout           (adder_carry_n_x)
+      );
 
-/////////////////////////////////////////////////////
-// Combinational Logic
-/////////////////////////////////////////////////////
+   /////////////////////////////////////////////////////
+       // Combinational Logic
+   /////////////////////////////////////////////////////
 
-// Extract signs of operands and result
+   // Extract signs of operands and result
 
-assign a_sign = operand_0_x[`LM32_WORD_WIDTH-1];
-assign b_sign = operand_1_x[`LM32_WORD_WIDTH-1];
-assign result_sign = adder_result_x[`LM32_WORD_WIDTH-1];
+   assign a_sign       = operand_0_x[`LM32_WORD_WIDTH-1];
+   assign b_sign       = operand_1_x[`LM32_WORD_WIDTH-1];
+   assign result_sign  = adder_result_x[`LM32_WORD_WIDTH-1];
 
-// Determine whether an overflow occured when performing a subtraction
+   // Determine whether an overflow occured when performing a subtraction
 
-always @(*)
-begin
-    //  +ve - -ve = -ve -> overflow
-    //  -ve - +ve = +ve -> overflow
-    if  (   (!a_sign & b_sign & result_sign)
-         || (a_sign & !b_sign & !result_sign)
-        )
-        adder_overflow_x = `TRUE;
-    else
-        adder_overflow_x = `FALSE;
-end
+   always @(*)
+     begin
+	//  +ve - -ve = -ve -> overflow
+	//  -ve - +ve = +ve -> overflow
+	if  (   (!a_sign & b_sign & result_sign)
+		|| (a_sign & !b_sign & !result_sign)
+		)
+          adder_overflow_x = `TRUE;
+	else
+          adder_overflow_x = `FALSE;
+     end
 
 endmodule
 
